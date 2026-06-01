@@ -1,1 +1,0 @@
-A bracket generator.
