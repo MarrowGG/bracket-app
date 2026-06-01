@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brackitify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0; --surface: #ffffff; --surface2: #f0ede8;
+    --border: #ddd9d3; --border2: #c8c4be; --text: #1a1a1a;
+    --muted: #999; --accent: #e8ff47; --accent-dim: #c8df30;
+    --win: #edf9d0; --win-text: #a8e000; --lose-text: #bbb;
+    --font-display: 'DM Mono', monospace; --font-body: 'DM Sans', sans-serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; overflow-x: hidden; }
+  header { padding: 2rem 2.5rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .logo { font-family: var(--font-display); font-size: 1.1rem; font-weight: 500; color: var(--accent); letter-spacing: -0.02em; }
+  .logo span { color: var(--muted); }
+  .main { display: flex; min-height: calc(100vh - 73px); }
+  .sidebar { width: 260px; flex-shrink: 0; border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+  .section-label { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .team-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+  .team-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; animation: slide-in 0.15s ease; }
+  @keyframes slide-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .team-item span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .team-item button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; transition: color 0.1s; }
+  .team-item button:hover { color: #ff5555; }
+  .add-row { display: flex; gap: 6px; }
+  input[type=text] { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: 13px; padding: 8px 10px; outline: none; transition: border-color 0.15s; }
+  input[type=text]:focus { border-color: var(--accent); }
+  input[type=text]::placeholder { color: var(--muted); }
+  input[type=number] { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--font-display); font-size: 14px; padding: 8px 10px; outline: none; width: 70px; text-align: center; transition: border-color 0.15s; }
+  input[type=number]:focus { border-color: var(--accent); }
+  .btn { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: 13px; padding: 8px 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; white-space: nowrap; }
+  .btn:hover { border-color: var(--border2); background: var(--surface2); }
+  .btn-accent { background: var(--accent); border-color: var(--accent); color: #0d0d0d; font-weight: 500; }
+  .btn-accent:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+  .sidebar-btns { display: flex; flex-direction: column; gap: 6px; }
+  .team-count { font-family: var(--font-display); font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .bracket-area { flex: 1; overflow-x: auto; padding: 2rem; }
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 300px; gap: 12px; color: var(--muted); }
+  .empty-state .big { font-size: 48px; opacity: 0.15; font-family: var(--font-display); }
+  .empty-state p { font-size: 14px; }
+  .rounds-wrap { display: flex; gap: 0; align-items: stretch; min-width: max-content; }
+  .round-col { display: flex; flex-direction: column; min-width: 180px; }
+  .round-header { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; text-align: center; padding: 0 12px 12px; }
+  .round-matches { display: flex; flex-direction: column; flex: 1; justify-content: space-around; }
+  .match-wrap { display: flex; flex: 1; flex-direction: column; justify-content: center; }
+  .match-card { margin: 4px 12px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); transition: border-color 0.15s; }
+  .match-card.clickable { cursor: pointer; }
+  .match-card.clickable:hover { border-color: var(--border2); }
+  .team-row { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: 13px; border-bottom: 1px solid var(--border); transition: background 0.1s; min-height: 38px; }
+  .team-row:last-child { border-bottom: none; }
+  .team-row.winner { color: var(--win-text); font-weight: 500; }
+  .team-row.loser { color: var(--lose-text); }
+  .team-row.tbd { color: #ccc; font-style: italic; }
+  .team-row.winner-bg { background: var(--win); }
+  .team-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .score-badge { font-family: var(--font-display); font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border); min-width: 26px; text-align: center; }
+  .w-chip { font-family: var(--font-display); font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--accent); color: #0d0d0d; font-weight: 500; letter-spacing: 0.05em; }
+  .champion-col { display: flex; flex-direction: column; min-width: 160px; }
+  .champion-card { margin: 4px 12px; border: 1px solid var(--accent); border-radius: 8px; background: #edf9d0; padding: 14px 16px; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+  .champion-label { font-family: var(--font-display); font-size: 9px; letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase; }
+  .champion-name { font-size: 15px; font-weight: 500; color: var(--accent); }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 1.5rem; width: 320px; animation: pop-in 0.15s ease; }
+  @keyframes pop-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
+  .modal h3 { font-family: var(--font-display); font-size: 13px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  .modal-team-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .modal-team-row .tname { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modal-footer { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+  @media (max-width: 680px) { .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); } .main { flex-direction: column; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">brackitify<span>.gg</span></div>
+  <div><button class="btn btn-sm" onclick="exportBracket()">Export .txt</button></div>
+</header>
+<div class="main">
+  <aside class="sidebar">
+    <div>
+      <div class="section-label">Teams</div>
+      <div class="team-list" id="team-list"></div>
+      <div class="team-count" id="team-count">0 teams</div>
+    </div>
+    <div class="add-row">
+      <input type="text" id="new-team" placeholder="Team name..." maxlength="30" />
+      <button class="btn" onclick="addTeam()">+</button>
+    </div>
+    <div class="sidebar-btns">
+      <button class="btn btn-accent" onclick="generateBracket()">Generate bracket</button>
+      <button class="btn" onclick="shuffleTeams()">Shuffle seeds</button>
+      <button class="btn" onclick="resetAll()">Reset everything</button>
+    </div>
+  </aside>
+  <main class="bracket-area" id="bracket-area">
+    <div class="empty-state"><div class="big">[ ]</div><p>Add at least 2 teams and generate a bracket</p></div>
+  </main>
+</div>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>Match score</h3>
+    <div class="modal-team-row"><span class="tname" id="modal-t1"></span><input type="number" id="modal-s1" min="0" placeholder="0" /></div>
+    <div class="modal-team-row"><span class="tname" id="modal-t2"></span><input type="number" id="modal-s2" min="0" placeholder="0" /></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveScore()">Save &amp; advance winner</button>
+    </div>
+  </div>
+</div>
+<script>
+let teams = [], bracket = [], currentMatch = null;
+function renderTeamList() {
+  document.getElementById('team-list').innerHTML = teams.map((t, i) => `<div class="team-item"><span>${t}</span><button onclick="removeTeam(${i})">×</button></div>`).join('');
+  document.getElementById('team-count').textContent = `${teams.length} team${teams.length !== 1 ? 's' : ''}`;
+}
+function addTeam() {
+  const inp = document.getElementById('new-team');
+  const val = inp.value.trim();
+  if (!val || teams.map(t => t.toLowerCase()).includes(val.toLowerCase())) return;
+  teams.push(val); inp.value = ''; renderTeamList();
+}
+document.getElementById('new-team').addEventListener('keydown', e => { if (e.key === 'Enter') addTeam(); });
+function removeTeam(i) { teams.splice(i, 1); renderTeamList(); }
+function shuffleTeams() {
+  for (let i = teams.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [teams[i], teams[j]] = [teams[j], teams[i]]; }
+  renderTeamList();
+}
+function nextPow2(n) { let p = 1; while (p < n) p *= 2; return p; }
+function generateBracket() {
+  if (teams.length < 2) { alert('Add at least 2 teams.'); return; }
+  const size = nextPow2(teams.length);
+  const seeded = [...teams]; while (seeded.length < size) seeded.push(null);
+  bracket = [];
+  const r0 = [];
+  for (let i = 0; i < size; i += 2) r0.push({ t1: seeded[i], t2: seeded[i+1], s1: null, s2: null, winner: seeded[i+1] === null ? seeded[i] : null });
+  bracket.push(r0);
+  let prev = r0;
+  while (prev.length > 1) {
+    const next = [];
+    for (let i = 0; i < prev.length; i += 2) next.push({ t1: prev[i].winner || null, t2: (prev[i+1] && prev[i+1].winner) || null, s1: null, s2: null, winner: null });
+    bracket.push(next); prev = next;
+  }
+  propagateAllByes(); renderBracket();
+}
+function propagateAllByes() {
+  for (let ri = 0; ri < bracket.length - 1; ri++) {
+    bracket[ri].forEach((m, mi) => {
+      if (m.t1 && !m.t2 && !m.winner) { m.winner = m.t1; bracket[ri+1][Math.floor(mi/2)][mi%2===0?'t1':'t2'] = m.t1; }
+    });
+  }
+}
+function roundName(r, total) {
+  const f = total - 1;
+  if (r === f) return 'Final';
+  if (r === f-1) return 'Semifinal';
+  if (r === f-2) return 'Quarterfinal';
+  return `Round ${r+1}`;
+}
+function renderBracket() {
+  const el = document.getElementById('bracket-area');
+  if (!bracket.length) { el.innerHTML = '<div class="empty-state"><div class="big">[ ]</div><p>Add at least 2 teams and generate a bracket</p></div>'; return; }
+  const total = bracket.length;
+  let html = '<div class="rounds-wrap">';
+  bracket.forEach((round, ri) => {
+    html += `<div class="round-col"><div class="round-header">${roundName(ri, total)}</div><div class="round-matches">`;
+    round.forEach((m, mi) => {
+      const t1 = m.t1||'TBD', t2 = m.t2||'TBD';
+      const w1 = m.winner && m.winner===m.t1, w2 = m.winner && m.winner===m.t2;
+      const canClick = m.t1 && m.t2;
+      html += `<div class="match-wrap"><div class="match-card${canClick?' clickable':''}" ${canClick?`onclick="openModal(${ri},${mi})"`:''}>`; 
+      html += `<div class="team-row${!m.t1?' tbd':w1?' winner winner-bg':m.winner?' loser':''}"><span class="team-name">${t1}</span>${w1?'<span class="w-chip">W</span>':''}${m.s1!==null?`<span class="score-badge">${m.s1}</span>`:''}</div>`;
+      html += `<div class="team-row${!m.t2?' tbd':w2?' winner winner-bg':m.winner?' loser':''}"><span class="team-name">${t2}</span>${w2?'<span class="w-chip">W</span>':''}${m.s2!==null?`<span class="score-badge">${m.s2}</span>`:''}</div>`;
+      html += `</div></div>`;
+    });
+    html += '</div></div>';
+  });
+  const champ = bracket[bracket.length-1][0].winner;
+  if (champ) html += `<div class="champion-col"><div class="round-header">Champion</div><div class="round-matches"><div class="match-wrap"><div class="champion-card"><div class="champion-label">Champion</div><div class="champion-name">${champ}</div></div></div></div></div>`;
+  html += '</div>';
+  el.innerHTML = html;
+}
+function openModal(ri, mi) {
+  const m = bracket[ri][mi]; if (!m.t1||!m.t2) return;
+  currentMatch = {ri, mi};
+  document.getElementById('modal-t1').textContent = m.t1;
+  document.getElementById('modal-t2').textContent = m.t2;
+  document.getElementById('modal-s1').value = m.s1!==null?m.s1:'';
+  document.getElementById('modal-s2').value = m.s2!==null?m.s2:'';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('modal-s1').focus();
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); currentMatch = null; }
+document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target===e.currentTarget) closeModal(); });
+function saveScore() {
+  if (!currentMatch) return;
+  const {ri, mi} = currentMatch; const m = bracket[ri][mi];
+  const s1 = parseInt(document.getElementById('modal-s1').value);
+  const s2 = parseInt(document.getElementById('modal-s2').value);
+  if (isNaN(s1)||isNaN(s2)) { closeModal(); return; }
+  m.s1=s1; m.s2=s2;
+  const prev_winner = m.winner;
+  m.winner = s1>s2?m.t1:s2>s1?m.t2:null;
+  if (ri+1 < bracket.length) {
+    const nextMatchIdx = Math.floor(mi/2);
+    const slot = mi%2===0?'t1':'t2';
+    const nm = bracket[ri+1][nextMatchIdx];
+    // If winner changed, reset the next match
+    if (prev_winner !== m.winner) {
+      nm[slot] = m.winner;
+      nm.s1 = null; nm.s2 = null; nm.winner = null;
+    }
+    // Auto-advance if the other slot has a bye
+    if (nm.t1 && !nm.t2) { nm.winner = nm.t1; }
+    else if (nm.t2 && !nm.t1) { nm.winner = nm.t2; }
+  }
+  closeModal(); renderBracket();
+}
+function resetAll() { bracket = []; renderBracket(); }
+function exportBracket() {
+  if (!bracket.length) { alert('Generate a bracket first.'); return; }
+  let text = 'TOURNAMENT BRACKET\n'+'='.repeat(40)+'\n\n';
+  bracket.forEach((round, ri) => {
+    text += roundName(ri, bracket.length).toUpperCase()+'\n'+'-'.repeat(20)+'\n';
+    round.forEach(m => { const score = m.s1!==null?` [${m.s1} - ${m.s2}]`:''; const w = m.winner?` → ${m.winner}`:''; text += `${m.t1||'TBD'} vs ${m.t2||'TBD'}${score}${w}\n`; });
+    text += '\n';
+  });
+  const champ = bracket[bracket.length-1][0].winner;
+  if (champ) text += 'CHAMPION: '+champ+'\n';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download='bracket.txt'; a.click();
+}
+</script>
+</body>
+</html>
